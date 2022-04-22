@@ -41,7 +41,7 @@ static void PrintVersion(void);
 static void PrintHelp(void);
 
 
-static const char optstring[] = "sl:i:f:dmhv";
+static const char optstring[] = "sl:i:f:dmthv";
 
 static struct option long_options[] = {
     
@@ -51,7 +51,8 @@ static struct option long_options[] = {
     {"format",                    required_argument,  0, 'f'}, // Format (of input file or data)
     {"device",                    no_argument,        0, 'd'}, // Use on-device speech recognition
     {"mode",                      no_argument,        0, 'm'}, // Enable single-line output mode (for mic)
-    
+    {"subtitle",                  no_argument,        0, 't'}, // Format output as .srt subtitle file
+
     {"help",                      no_argument,        0, 'h'},
     {"version",                   no_argument,        0, 'v'},
     
@@ -75,6 +76,7 @@ int main(int argc, const char * argv[]) { @autoreleasepool {
     NSString *inputFormat;
     BOOL useOnDeviceRecognition = FALSE;
     BOOL singleLineMode = FALSE;
+    BOOL subtitleMode = FALSE;
     
     // Parse arguments
     int optch;
@@ -112,6 +114,11 @@ int main(int argc, const char * argv[]) { @autoreleasepool {
             case 'm':
                 singleLineMode = YES;
                 break;
+                
+            // Output .srt formatted subtitle files
+            case 't':
+                subtitleMode = YES;
+                break;
             
             // Print version
             case 'v':
@@ -133,7 +140,8 @@ int main(int argc, const char * argv[]) { @autoreleasepool {
                                           input:inputFilename
                                          format:inputFormat
                                        onDevice:useOnDeviceRecognition
-                                 singleLineMode:singleLineMode];
+                                 singleLineMode:singleLineMode
+                                   subtitleMode:subtitleMode];
     [[NSApplication sharedApplication] setDelegate:hear];
     [[NSApplication sharedApplication] run];
     
@@ -160,6 +168,7 @@ Options:\n\
     -f --format [fmt]       Specify audio file format\n\
     -d --device             Only use on-device speech recognition\n\
     -m --mode               Enable single-line output mode (mic only)\n\
+    -t --subtitle           Enable subtitle mode, producing .srt output\n\
 \n\
     -h --help               Prints help\n\
     -v --version            Prints program name and version\n\

@@ -44,6 +44,7 @@
                            input:(NSString *)input
                           format:(NSString *)fmt
                         onDevice:(BOOL)useOnDeviceRecognition
-                  singleLineMode:(BOOL)singleLine;
+                  singleLineMode:(BOOL)singleLine
+                    subtitleMode:(BOOL)subtitle;
 
 @end

@@ -48,6 +48,8 @@
 @property (nonatomic) BOOL useMic;
 @property (nonatomic) BOOL useOnDeviceRecognition;
 @property (nonatomic) BOOL singleLineMode;
+@property (nonatomic) BOOL subtitleMode;
+
 
 @end
 
@@ -57,7 +59,9 @@
                            input:(NSString *)input
                           format:(NSString *)fmt
                         onDevice:(BOOL)onDevice
-                  singleLineMode:(BOOL)singleLine {
+                  singleLineMode:(BOOL)singleLine
+                    subtitleMode:(BOOL)subtitle{
+    
     if ((self = [super init])) {
         
         if ([[Hear supportedLanguages] containsObject:language] == NO) {
@@ -70,6 +74,7 @@
         self.inputFormat = fmt;
         self.useOnDeviceRecognition = onDevice;
         self.singleLineMode = singleLine;
+        self.subtitleMode = subtitle;
         self.useMic = (input == nil);
     }
     return self;
@@ -139,7 +144,11 @@
     if (self.useMic) {
         [self startListening];
     } else {
-        [self processFile];
+        if (self.subtitleMode) {
+            [self processFileSubtitle];
+        } else {
+            [self processFile];
+        }
     }
 }
 
@@ -177,6 +186,83 @@
             s = [NSString stringWithFormat:@"%@ ", s];
         }
         NSDump(s);
+        if (result.isFinal) {
+            // We're all done
+            NSDump(@"\n");
+            exit(EXIT_SUCCESS);
+        }
+    }];
+    if (self.task == nil) {
+        [self die:@"Error: Unable to initialize speech recognition task"];
+    }
+}
+
+// https://stackoverflow.com/a/32884209/11639533
+- (NSString *)stringFromTimeInterval:(NSTimeInterval)timeInterval
+{
+    NSInteger interval = timeInterval;
+    NSInteger ms = (fmod(timeInterval, 1) * 1000);
+    long seconds = interval % 60;
+    long minutes = (interval / 60) % 60;
+    long hours = (interval / 3600);
+
+    return [NSString stringWithFormat:@"%0.2ld:%0.2ld:%0.2ld,%0.3ld", hours, minutes, seconds, (long)ms];
+}
+
+// Produces output in the format of a valid .srt file
+- (void)processFileSubtitle {
+    
+    NSString *filePath = self.inputFile;
+    if ([filePath isEqualToString:@"-"]) {
+        // TODO: Read from stdin and save to temp dir/feed to audio buffer processing?
+        [self die:@"Reading from standard input remains unimplemented"];
+    } else if ([[NSFileManager defaultManager] fileExistsAtPath:filePath] == NO) {
+        [self die:[NSString stringWithFormat:@"No file at path %@", filePath]];
+    }
+    
+    // OK, the file exists, let's try to run speech recognition on it
+    [self initRecognizer];
+    
+    // Create speech recognition request with file URL
+    NSURL *fileURL = [NSURL fileURLWithPath:filePath];
+    self.request = [[SFSpeechURLRecognitionRequest alloc] initWithURL:fileURL];
+    if (self.request == nil) {
+        [self die:@"Error: Unable to initialize speech recognition request"];
+    }
+    self.request.shouldReportPartialResults = NO;
+    self.request.requiresOnDeviceRecognition = self.useOnDeviceRecognition;
+
+    // Create speech recognition task
+    self.task = [self.recognizer recognitionTaskWithRequest:self.request
+                                              resultHandler:
+    ^(SFSpeechRecognitionResult * _Nullable result, NSError * _Nullable error) {
+        if (error != nil) {
+            [self die:[error localizedDescription]];
+        }
+        
+        NSUInteger srt_index = 1;
+        NSUInteger segment_count = result.bestTranscription.segments.count;
+        const int CHUNK_SIZE = 8;
+        assert(CHUNK_SIZE > 0);
+        for (NSUInteger i = 0; i < segment_count; i++) {
+            NSUInteger start = i;
+            NSUInteger end = MIN(i+CHUNK_SIZE, segment_count-1);
+            i = end;
+                        
+            printf("%lu\n", srt_index); // sequential subtitle number
+            srt_index++;
+            
+            NSTimeInterval start_time = result.bestTranscription.segments[start].timestamp;
+            NSTimeInterval end_time = result.bestTranscription.segments[end].timestamp + result.bestTranscription.segments[end].duration;
+            printf("%s --> %s\n", [[self stringFromTimeInterval: start_time] UTF8String], [[self stringFromTimeInterval: end_time] UTF8String]);
+            
+            for (NSUInteger k = start; k <= end; k++) {
+                printf("%s", [result.bestTranscription.segments[k].substring UTF8String]);
+                if (k < end) { printf(" "); }
+            }
+            printf("\n\n");
+        }
+        //NSDump(s);
         if (result.isFinal) {
             // We're all done
             NSDump(@"\n");
