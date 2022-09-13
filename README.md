@@ -2,6 +2,7 @@
 [![Language](https://img.shields.io/badge/language-objective--c-lightgrey)]()
 [![Build](https://github.com/sveinbjornt/hear/actions/workflows/macos.yml/badge.svg)]()
 
+> You might be looking for [@sveinbjornt/hear](https://github.com/sveinbjornt/hear). This is a fork of that project that outputs .srt files.
 # hear
 
 <img src="icon.png" width="168" height="168" alt="hear" style="float: right; margin-left: 20px; margin-bottom: 20px;" align="right">

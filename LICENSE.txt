@@ -1,5 +1,8 @@
 BSD 3-Clause License
 
+Modifications (c) 2022, Michael Noguera <michael@noguera.dev> are released 
+under this same license.
+
 Copyright (c) 2022, Sveinbjorn Thordarson <sveinbjorn@sveinbjorn.org>
 All rights reserved.
 
